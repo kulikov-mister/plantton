@@ -12,7 +12,7 @@ TCB-bot is a Telegram bot that generates books and publishes them on Telegra.ph.
 
 1. Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/TCB-bot.git
+    git clone https://github.com/kulikov-mister/TCB-bot.git
     ```
 2. Navigate to the project directory:
     ```bash
