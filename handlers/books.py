@@ -170,6 +170,16 @@ async def query_choose_books(inline_query: InlineQuery, state: FSMContext, trans
 # инлайн режим для поиска книг
 @router.inline_query(F.query.startswith('all'))
 async def query_search_books(inline_query: InlineQuery, state: FSMContext, translator: LocalizedTranslator, session) -> None:
+    user_id = inline_query.from_user.id
+
+    user = await UserCRUD.get_user_by_user_id(session, user_id)
+    if not user:
+        results = await generate_error_result(translator, 'code_404', 'code_404_description')
+        await inline_query.answer(
+            results, is_personal=True, cache_time=0, switch_pm_text=translator.get('switch_pm_text_start'),
+            switch_pm_parameter='start'
+        )
+        return
 
     # Получаем список книг из категории
     category_code = 'xx9k23b12'  # для теста
@@ -207,6 +217,11 @@ async def query_search_books(inline_query: InlineQuery, state: FSMContext, trans
 # инлайн режим для поиска книг
 @router.inline_query(F.query.startswith('my'))
 async def query_search_my_books(inline_query: InlineQuery, state: FSMContext, translator: LocalizedTranslator, session) -> None:
+    user_id = inline_query.from_user.id
+
+    user = await UserCRUD.get_user_by_user_id(session, user_id)
+    if not user:
+        return
 
     # Получаем список книг из категории
     category_code = 'xx9k23b12'  # для теста
