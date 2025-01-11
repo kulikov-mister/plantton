@@ -1,0 +1,3 @@
+[console_scripts]
+i18n=fluentogram.cli:cli
+

@@ -1,0 +1,11 @@
+telegraph
+asyncio
+httpx
+aiogram
+aiocache
+fluent
+fluent_compiler
+fluentogram
+markdown
+bleach
+tqdm
