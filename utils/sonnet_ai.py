@@ -1,48 +1,47 @@
-# Description: This file contains the SonnetAI class which is used to generate sonnets using the GPT-2 model.
-import logging
+# utils/sonnet_ai.py
+#
 import os
+import logging
+import asyncio
 import httpx
+from anthropic import AsyncAnthropic
 from typing import Optional
 
 
 class SonnetAI:
-    def __init__(self, api_key: str, model: str):
-        self.api_key = api_key
-        self.model = model
-        self.endpoint = "https://api.openai.com/v1/engines/gpt-3.5/completions"
+    def __init__(self):
+        api_key = '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'
+        self.api_key = os.getenv('ANTHROPIC_API_KEY', api_key)
+        self.model = "claude-3-5-sonnet-latest"
+        self.client = AsyncAnthropic(
+            api_key=self.api_key
+        )
 
-    async def generate_sonnet(self, prompt: str, max_tokens: int = 100) -> Optional[str]:
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": self.model,
-            "prompt": prompt,
-            "max_tokens": max_tokens
-        }
+    async def generate_sonnet(self, content: str, max_tokens: int = 1024) -> Optional[str]:
+
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(self.endpoint, headers=headers, json=data)
-                response.raise_for_status()
-                return response.json()["choices"][0]["text"]
-        except httpx.HTTPStatusError as e:
-            logging.error(f"Error generating sonnet: {e}")
+            message = await self.client.messages.create(
+                max_tokens=max_tokens,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": content,
+                    }
+                ],
+                model=self.model,
+            )
+            return message.content
         except Exception as e:
-            logging.error(f"Error generating sonnet: {e}")
+            err = e.response.json()
+            logging.error(err.get('error').get('message'))
         return None
 
 
-# Usage:
-async def main():
-    # Create an instance of SonnetAI
-    sonnet_ai = SonnetAI(api_key=os.getenv("OPENAI_API_KEY"),
-                         model=os.getenv("OPENAI_MODEL"))
-    # Generate a sonnet from a prompt
-    sonnet = await sonnet_ai.generate_sonnet("Shall I compare thee to a summer's day?")
-    print(sonnet)
+async def main() -> None:
+    claude = SonnetAI()
+    sonnet = await claude.generate_sonnet("Hello, Claude")
+    if sonnet:
+        print(sonnet)
 
-
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+# if __name__ == "__main__":
+#     asyncio.run(main())

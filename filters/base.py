@@ -7,7 +7,7 @@ import os
 import json
 
 from aiogram.filters import BaseFilter
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineQuery
 
 from config import bot, admin_ids_str
 from db.crud import UserCRUD
@@ -19,7 +19,7 @@ from lang.translator import LocalizedTranslator, Translator
 class IsAdmin(BaseFilter):
     async def __call__(self, obj: object) -> bool:
         # Определяем user_id в зависимости от типа события
-        if isinstance(obj, Message) or isinstance(obj, CallbackQuery):
+        if isinstance(obj, Message) or isinstance(obj, CallbackQuery) or isinstance(obj, InlineQuery):
             user_id: int = obj.from_user.id
         else:
             return False
@@ -34,7 +34,7 @@ class IsAdmin(BaseFilter):
 class IsAuth(BaseFilter):
     async def __call__(self, obj: object, event_from_user, session, translator) -> bool:
         # Определяем user_id в зависимости от типа события
-        if isinstance(obj, Message) or isinstance(obj, CallbackQuery):
+        if isinstance(obj, Message) or isinstance(obj, CallbackQuery) or isinstance(obj, InlineQuery):
             user_id: int = obj.from_user.id
             language_code = obj.from_user.language_code
         else:

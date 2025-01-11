@@ -44,13 +44,13 @@ async def get_chunk_list_results(start_index: int, list_arr: list, size: int = 5
 
 
 # Утилита для создания результатов с ошибками
-async def generate_error_result(translator, title_key, description_key):
+async def generate_error_result(translator, title_key, description_key, thumbnail_url: str = None):
     return [
         InlineQueryResultArticle(
             id="1",
             title=translator.get(title_key),
             description=translator.get(description_key),
-            thumbnail_url="https://sun6-22.userapi.com/s/v1/if1/rLwx4UQ-0gPXldP0i_OLqIA4GwU6qcv9F4Nq0DxgG_gPp5goeEQtIIfLUfvAri67tAGHiqhX.jpg?size=250x250&quality=96&crop=0,0,250,250&ava=1",
+            thumbnail_url=thumbnail_url or "https://sun6-22.userapi.com/s/v1/if1/rLwx4UQ-0gPXldP0i_OLqIA4GwU6qcv9F4Nq0DxgG_gPp5goeEQtIIfLUfvAri67tAGHiqhX.jpg?size=250x250&quality=96&crop=0,0,250,250&ava=1",
             input_message_content=InputTextMessageContent(
                 message_text=f"/start", parse_mode=ParseMode.HTML
             )
@@ -59,7 +59,7 @@ async def generate_error_result(translator, title_key, description_key):
 
 
 # Хэндлер на команду /books
-@router.message(IsAuth, or_f(Command("books"), Command("start", magic=F.args == 'books')))
+@router.message(IsAuth(), or_f(Command("books"), Command("start", magic=F.args == 'books')))
 async def cmd_categories(message: Message, state: FSMContext, translator: LocalizedTranslator, session) -> None:
     # Генерация категорий для теста
     categories = await CategoryCRUD.get_all_categories(session)
@@ -89,6 +89,7 @@ async def cmd_categories(message: Message, state: FSMContext, translator: Locali
 @router.inline_query(F.query.startswith('#bs_'), States.categories)
 async def query_choose_books(inline_query: InlineQuery, state: FSMContext, translator: LocalizedTranslator, session) -> None:
     # Получаем данные из состояния
+    user_id = inline_query.from_user.id
     state_data = await state.get_data()
     saved_code = state_data.get('code')
     message_id = state_data.get('message_id')
@@ -100,6 +101,16 @@ async def query_choose_books(inline_query: InlineQuery, state: FSMContext, trans
             text=translator.get('choose_book'), reply_markup=None
         )
         await state.update_data(message_id=None)
+
+    user = await UserCRUD.get_user_by_user_id(session, user_id)
+    if not user:
+        results = await generate_error_result(translator, 'not_user_title', 'not_user_description')
+        await inline_query.answer(
+            results, is_personal=True, cache_time=0,
+            switch_pm_text=translator.get('switch_pm_text_register'),
+            switch_pm_parameter='start'
+        )
+        return
 
     # Парсим запрос
     query_parts = inline_query.query.split('_')
@@ -174,9 +185,10 @@ async def query_search_books(inline_query: InlineQuery, state: FSMContext, trans
 
     user = await UserCRUD.get_user_by_user_id(session, user_id)
     if not user:
-        results = await generate_error_result(translator, 'code_404', 'code_404_description')
+        results = await generate_error_result(translator, 'not_user_title', 'not_user_description')
         await inline_query.answer(
-            results, is_personal=True, cache_time=0, switch_pm_text=translator.get('switch_pm_text_start'),
+            results, is_personal=True, cache_time=0,
+            switch_pm_text=translator.get('switch_pm_text_register'),
             switch_pm_parameter='start'
         )
         return
@@ -221,6 +233,12 @@ async def query_search_my_books(inline_query: InlineQuery, state: FSMContext, tr
 
     user = await UserCRUD.get_user_by_user_id(session, user_id)
     if not user:
+        results = await generate_error_result(translator, 'not_user_title', 'not_user_description')
+        await inline_query.answer(
+            results, is_personal=True, cache_time=0,
+            switch_pm_text=translator.get('switch_pm_text_register'),
+            switch_pm_parameter='start'
+        )
         return
 
     # Получаем список книг из категории

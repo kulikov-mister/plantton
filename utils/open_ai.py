@@ -54,6 +54,6 @@ async def main():
     answer = await openai.process_msg("What is the meaning of life?")
     print(answer)
 
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+# if __name__ == "__main__":
+#     import asyncio
+#     asyncio.run(main())
