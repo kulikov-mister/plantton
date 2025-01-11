@@ -3,7 +3,6 @@
 import os
 import json
 import asyncio
-from tqdm.asyncio import tqdm
 from utils.gemini import GeminiClient
 from utils.tools import write_data_file
 from utils.telegra_ph import create_book_in_telegraph

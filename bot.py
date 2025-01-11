@@ -22,13 +22,13 @@ from middlewares.action import ChatActionMiddleware
 from lang.translator import LocalizedTranslator, Translator
 from lang.localMiddleware import LangMiddleware
 from utils.telegra_ph import create_book_in_telegraph
-from utils.bot_configs import set_bot_configs, set_commands
+# from utils.bot_configs import set_bot_configs, set_commands
 from utils.telegram import send_message_admin
 
 from main import generate_topics_book, generate_book
 from config import bot, dp
-from db.crud import UserCRUD, PaymentCRUD, BookCRUD, CategoryCRUD
-from db.updater import check_and_update_database
+from db.crud import UserCRUD, BookCRUD, CategoryCRUD
+from db.updater import sync_database
 from keyboards.inline_builder import get_paginated_keyboard
 
 af = {"chat_action": "typing"}
@@ -48,29 +48,18 @@ class States(StatesGroup):
 # ХЭНДЛЕРЫ
 
 
-# Хэндлер на команду /start
-@dp.message(IsAdmin(), IsAuth(), Command("start", magic=F.args.in_([None, 'start'])))
-async def cmd_start(message: Message, state: FSMContext, translator: LocalizedTranslator):
-    await message.answer_sticker('CAACAgEAAxkBAAIB-md1m0AGoO0FAVGqn9DIXWMSozJoAAJ_AwACjrnpRxz1DWc-DE2ZNgQ')
-    # приветственное сообщение
-    await message.answer(translator.get('greeting_message'), disable_web_page_preview=True)
-
-
-# Хэндлер на команду /help
-@dp.message(IsAdmin(), IsAuth(), Command("help"))
-async def cmd_help(message: Message, state: FSMContext, translator: LocalizedTranslator):
-    await message.answer_sticker('CAACAgEAAxkBAAICb2d10F22KTmOyD4JeR29YEdb1Bo4AAIiAwACZr6hRjnro5jznq9LNgQ')
-    await message.answer(translator.get('help_message'))
-
-
 # Хэндлер на команду /create_book
 # TODO: сделать выбор категории на разных языках
 @dp.message(IsAdmin(), IsAuth(), Command("create_book"))
 async def cmd_create_book(message: Message, state: FSMContext, translator: LocalizedTranslator, session):
+    categories = await CategoryCRUD.get_all_categories(session)
+    if not categories:
+        await message.answer(translator.get('create_book_no_categories'))
+        return
+
     await message.answer_sticker('CAACAgEAAxkBAAIB_2d1m32sj8Yk9OVZrxbO1X_-w1yrAALAAgACTVHYRii61wRcT0tBNgQ')
     await message.answer(translator.get('create_book_message'))
 
-    categories = await CategoryCRUD.get_all_categories(session)
     kbs = [
         InlineKeyboardButton(text=cat.name, callback_data=f'cat_{cat.id}')
         for cat in categories
@@ -272,7 +261,7 @@ async def callback_next_2(call: CallbackQuery, state: FSMContext, translator: Lo
 async def main() -> None:
 
     # Проверяем и обновляем структуру БД
-    check_and_update_database()
+    sync_database()
 
     from handlers import router
     dp.include_router(router)

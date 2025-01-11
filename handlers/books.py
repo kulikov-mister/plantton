@@ -63,6 +63,10 @@ async def generate_error_result(translator, title_key, description_key, thumbnai
 async def cmd_categories(message: Message, state: FSMContext, translator: LocalizedTranslator, session) -> None:
     # Генерация категорий для теста
     categories = await CategoryCRUD.get_all_categories(session)
+    if not categories:
+        await message.answer(translator.get('no_categories'))
+        return
+
     captcha_code = await generate_random_string_async_lower()
 
     # Сохраняем код в состояние

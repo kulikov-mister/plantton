@@ -116,6 +116,9 @@ generate_topics_book_error =
 
 callback_empty_message = ⚠️ Повторите попытку заново
 pagination_answer = Страница { $page }
+no_categories = ⭕️ <b>Нет категорий</b>
+create_book_no_categories = ⭕️ <b>Нет категорий в которой можно было бы создать кингу...</b>
+
 
 # ###################### ИНЛАЙН РЕЖИМ #############################
 

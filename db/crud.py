@@ -1,4 +1,4 @@
-# db/crud.py
+# db/crud/crud.py
 import json
 from datetime import datetime, timedelta
 from db.models import User, Payment, Order, Category, Book
@@ -410,58 +410,53 @@ class BookCRUD:
         cached_books = await BookCRUD.cache.get_data('books_'+user_id)
         if cached_books:
             return dict_to_model(Book, cached_books)
+
         books = session.query(Book).filter(Book.user_id == user_id).all()
-        await BookCRUD.cache.set_data('books_'+user_id, books)
+        result = [
+            {
+                "id": book.id,
+                "name_book": book.name_book,
+                "description_book": book.description_book,
+                "book_url": book.book_url,
+            }
+            for book in books
+        ]
+        await BookCRUD.cache.set_data(f'books_{user_id}', result)
+        return result
 
     @staticmethod
     async def get_all_books_by_category_code(session: Session, category_code: str):
         """Получить все книги по коду категории."""
-
-        # Получаем категорию по коду из кеша
-        cached_categories = await BookCRUD.cache.get_data(f'#c_{category_code}')
-        if cached_categories:
-            return cached_categories  # Нет необходимости конвертировать кеш
+        cached_books = await BookCRUD.cache.get_data(f'#c_{category_code}')
+        if cached_books:
+            return dict_to_model(Book, cached_books)
 
         # Получаем категорию по коду
         category = session.query(Category).filter(
             Category.code == category_code).first()
-
-        # Если категория не найдена
         if not category:
             return []
 
-        # Получаем все книги, связанные с этой категорией
+        # Получаем книги, связанные с категорией
         books = session.query(Book).filter(
             Book.category_id == category.id).all()
 
-        # Преобразуем книги в нужный формат
-        result = []
-        for book in books:
-            # Проверяем и парсим content, если он строка
-            content = book.content
-            if isinstance(content, str):  # Если это строка
-                try:
-                    content = json.loads(content)  # Парсим JSON
-                except json.JSONDecodeError:  # Если парсинг не удался
-                    content = {}  # Используем пустой словарь
-
-            # Формируем результат
-            result.append({
+        result = [
+            {
                 "id": book.id,
                 "title": book.name_book,
                 "description": book.description_book or 'Нет описания',
-                # Изображение
                 "image_url": "https://i.imgur.com/Dnm3RRZ.png",
-                "book_url": book.book_url
-            })
+                "book_url": book.book_url,
+            }
+            for book in books
+        ]
 
-        # Сохраняем в кеш, если данные есть
         if result:
             await BookCRUD.cache.set_data(f'#c_{category_code}', result)
-
         return result
 
-    @ staticmethod
+    @staticmethod
     async def update_book(session: Session, book_id: int, **kwargs) -> Book:
         """Обновить книгу в БД и кеше."""
         book = session.query(Book).filter(Book.id == book_id).first()
@@ -475,7 +470,7 @@ class BookCRUD:
             await BookCRUD.cache.update_data(str(book_id), kwargs)
         return book
 
-    @ staticmethod
+    @staticmethod
     async def delete_book(session: Session, book_id: int) -> bool:
         """Удалить книгу из БД и кеша."""
         book = session.query(Book).filter(Book.id == book_id).first()
