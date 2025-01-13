@@ -4,50 +4,36 @@ from datetime import datetime, timedelta
 from db.models import User, Payment, Order, Category, Book
 from sqlalchemy.orm import Session
 from utils.cache_utils import CacheManager
+from utils.code_generator import generate_random_string_async_lower
 
-
-def dict_to_model(model_class, data: dict):
-    """Преобразовать словарь данных в объект SQLAlchemy модели."""
-    return model_class(**data)
+cache = CacheManager()
 
 
 class UserCRUD:
-    cache = CacheManager()
 
     @staticmethod
-    async def create_user(session: Session, user_id: str) -> User:
+    async def create_user(session: Session, user_id: str, charge_id: str = '') -> User:
         """Создать нового пользователя и добавить его в кеш."""
-        user = User(user_id=user_id)
+        user = User(user_id=user_id, charge_id=charge_id)
         session.add(user)
         session.commit()
         session.refresh(user)
 
         # Сохраняем в кеш
-        await UserCRUD.cache.set_data(user_id, {
-            "id": user.id,
-            "user_id": user.user_id,
-            "balance": user.balance,
-        })
+        await cache.set_data(user_id, User.to_dict(user))
         return user
 
     @staticmethod
     async def get_user_by_user_id(session: Session, user_id: str) -> User:
-        """Получить пользователя из кеша или БД, возвращая SQLAlchemy объект."""
-        # Пробуем получить данные из кеша
-        cached_user = await UserCRUD.cache.get_data(user_id)
+        """Получить пользователя из кеша или БД."""
+        cached_user = await cache.get_data(user_id)
         if cached_user:
-            return dict_to_model(User, cached_user)
+            return User.from_dict(cached_user)
 
-        # Если нет в кеше, берем из БД и добавляем в кеш
+        # Если в кеше нет, берем из БД
         user = session.query(User).filter(User.user_id == user_id).first()
         if user:
-            await UserCRUD.cache.set_data(user_id, {
-                "id": user.id,
-                "user_id": user.user_id,
-                "pro": user.pro,
-                "balance": user.balance,
-                "charge_id": user.charge_id
-            })
+            await cache.set_data(user_id, User.to_dict(user))
         return user
 
     @staticmethod
@@ -60,8 +46,8 @@ class UserCRUD:
             session.commit()
             session.refresh(user)
 
-            # Обновляем кеш
-            await UserCRUD.cache.update_data(user_id, kwargs)
+            # Обновляем данные в кеше
+            await cache.update_data(user_id, kwargs)
         return user
 
     @staticmethod
@@ -69,12 +55,12 @@ class UserCRUD:
         """Обновить баланс пользователя в БД и сбросить кеш."""
         user = session.query(User).filter(User.user_id == user_id).first()
         if user:
-            user.balance += amount  # Добавляем сумму к текущему балансу
+            user.balance += amount
             session.commit()
             session.refresh(user)
 
-            # Сбрасываем кеш, чтобы избежать устаревших данных
-            await UserCRUD.cache.delete(user_id)
+            # Удаляем старые данные из кеша
+            await cache.delete(user_id)
         return user
 
     @staticmethod
@@ -87,7 +73,7 @@ class UserCRUD:
             session.refresh(user)
 
             # Сбрасываем кеш, чтобы избежать устаревших данных
-            await UserCRUD.cache.delete(user_id)
+            await cache.delete(user_id)
         return user
 
     @staticmethod
@@ -95,18 +81,15 @@ class UserCRUD:
         """Обновить статус пользователя в БД и сбросить кеш."""
         user = session.query(User).filter(User.user_id == user_id).first()
         if user:
-            user.pro = status  # Обновляем баланс
+            user.pro = status
             if days:
-                user.date = datetime.now() + timedelta(days=days)  # Прибавляем дни
-
-            # обновить id подписки
+                user.date = datetime.now() + timedelta(days=days)
             user.charge_id = charge_id
-
             session.commit()
             session.refresh(user)
 
-            # Сбрасываем кеш, чтобы избежать устаревших данных
-            await UserCRUD.cache.delete(user_id)
+            # Обновляем кеш
+            await cache.delete(user_id)
         return user
 
     @staticmethod
@@ -118,33 +101,29 @@ class UserCRUD:
             session.commit()
 
             # Удаляем из кеша
-            await UserCRUD.cache.delete(user_id)
+            await cache.delete(user_id)
             return True
         return False
 
 
 class PaymentCRUD:
+
     @staticmethod
     async def create_payment(session: Session, user_id: str, amount: float, charge_id: str) -> Payment:
-        """Создать запись о пополнении баланса и сбросить кеш пользователя."""
-        # Создаём запись о платеже
-        payment = Payment(
-            user_id=int(user_id), amount=amount, charge_id=charge_id
-        )
+        """Создать запись о платеже и сбросить кеш пользователя."""
+        payment = Payment(user_id=user_id, amount=amount, charge_id=charge_id)
         session.add(payment)
         session.commit()
         session.refresh(payment)
 
-        # Обновляем баланс пользователя через UserCRUD со сбросом кеша
+        # Обновляем баланс пользователя
         await UserCRUD.update_balance(session, user_id, amount)
 
         return payment
 
     @staticmethod
-    async def create_payment_with_update_status(
-        session: Session, user_id: str, amount: float, charge_id: str, status: bool, days: int
-    ) -> Payment:
-        """Создать запись о пополнении баланса и не сбросить кеш пользователя."""
+    async def create_payment_with_update_status(session: Session, user_id: str, amount: float, charge_id: str, status: bool, days: int) -> Payment:
+        """Создать запись о пополнении баланса и сбросить кеш пользователя."""
         # Создаём запись о платеже
         payment = Payment(
             user_id=int(user_id), amount=amount, charge_id=charge_id
@@ -159,8 +138,8 @@ class PaymentCRUD:
         return payment
 
     @staticmethod
-    async def get_payments_by_user_id(session: Session, user_id: str) -> Payment:
-        """Получить список пополнений пользователя."""
+    async def get_payments_by_user_id(session: Session, user_id: str):
+        """Получить список платежей пользователя."""
         return session.query(Payment).filter(Payment.user_id == user_id).all()
 
     @staticmethod
@@ -197,36 +176,26 @@ class PaymentCRUD:
 class OrderCRUD:
 
     @staticmethod
-    async def create_order(session: Session, user_id: int, book_id: int, amount: int, book_url: str) -> Order:
+    async def create_order(session: Session, user_id: str, book_id: int, amount: int, book_url: str) -> Order:
         """Создать новый заказ."""
-        # Получаем пользователя
+        # Проверяем баланс пользователя
         user = session.query(User).filter(User.user_id == user_id).first()
-
-        # Проверка на существование пользователя
-        if user is None:
+        if not user:
             raise ValueError(f"Пользователь с ID {user_id} не найден.")
-
-        # Проверка баланса пользователя
-        if user.balance is None:
-            raise ValueError(f"Баланс пользователя с ID {
-                             user_id} не установлен.")
-
-        # Проверяем достаточно ли средств
         if user.balance < amount:
             raise ValueError("Недостаточно средств для создания заказа.")
 
-        # Вычитаем сумму из баланса
+        # Списываем средства
         user.balance -= amount
         session.commit()
         session.refresh(user)
 
         # Сбрасываем кеш пользователя
-        await UserCRUD.cache.delete(user_id)
+        await cache.delete(user_id)
 
-        # Создаем заказ
-        order = Order(
-            user_id=user_id, book_id=book_id, amount=amount, book_url=book_url
-        )
+        # Создаём заказ
+        order = Order(user_id=user_id, book_id=book_id,
+                      amount=amount, book_url=book_url)
         session.add(order)
         session.commit()
         session.refresh(order)
@@ -255,69 +224,74 @@ class OrderCRUD:
 
 
 class CategoryCRUD:
-    cache = CacheManager()
 
     @staticmethod
-    async def create_category(session: Session, name: str, translations: dict) -> Category:
+    async def create_category(session: Session, name: str, translations: dict, description: str = "", img: str = "") -> Category:
         """Создать категорию и добавить в кеш."""
-        category = Category(name=name, translations=translations)
+        code = await generate_random_string_async_lower(4)
+        category = Category(
+            name=name, code=code, description=description, img=img, translations=translations)
         session.add(category)
         session.commit()
         session.refresh(category)
 
         # Добавляем в кеш
-        await CategoryCRUD.cache.set_data(str(category.id), {
+        await cache.set_data(str(category.id), {
             "id": category.id,
             "name": category.name,
-            "translations": category.translations
+            "translations": category.translations,
         })
         return category
 
     @staticmethod
     async def get_category_by_id(session: Session, category_id: int) -> Category:
         """Получить категорию из кеша или БД."""
-        cached_category = await CategoryCRUD.cache.get_data(str(category_id))
+        cached_category = await cache.get_data(str(category_id))
         if cached_category:
-            return dict_to_model(Category, cached_category)
+            return Category.from_dict(cached_category)
 
         # Если в кеше нет, берем из БД
         category = session.query(Category).filter(
             Category.id == category_id).first()
         if category:
-            await CategoryCRUD.cache.set_data(str(category.id), {
-                "id": category.id,
-                "name": category.name,
-                "translations": category.translations
-            })
+            await cache.set_data(str(category.id), Category.to_dict(category))
+        return category
+
+    @staticmethod
+    async def get_category_by_category_code(session: Session, category_code: str) -> Category:
+        """Получить категорию из кеша или БД."""
+        cache_key = f'category_by_{category_code}'
+
+        cached_category = await cache.get_data(cache_key)
+        if cached_category:
+            return Category.from_dict(cached_category)
+
+        # Если в кеше нет, берем из БД
+        category = session.query(Category).filter(
+            Category.code == category_code).first()
+        if category:
+            await cache.set_data(cache_key, Category.to_dict(category))
         return category
 
     @staticmethod
     async def get_all_categories(session: Session) -> Category:
         """Получить все категории (с кешем)."""
-
+        cache_key = "all_categories"
         # Пробуем получить данные из кеша
-        cached_categories = await CategoryCRUD.cache.get_data("all_categories")
+        cached_categories = await cache.get_data(cache_key)
         if cached_categories:
             # Возвращаем данные из кеша в виде списка объектов Category
-            return [dict_to_model(Category, cat) for cat in cached_categories]
+            return [Category.from_dict(cat) for cat in cached_categories]
 
         # Если в кеше данных нет, берем из БД
         categories = session.query(Category).all()
 
         # Преобразуем категории в список словарей для кеширования
-        categories_data = []
-        for category in categories:
-            categories_data.append({
-                "id": category.id,
-                "code": category.code,
-                "name": category.name,
-                "description": category.description,
-                "img": category.img,
-                "translations": category.translations
-            })
+        categories_data = [Category.to_dict(
+            category) for category in categories]
 
         # Сохраняем в кеш
-        await CategoryCRUD.cache.set_data("all_categories", categories_data)
+        await cache.set_data(cache_key, categories_data)
 
         # Возвращаем объекты категорий
         return categories
@@ -334,7 +308,7 @@ class CategoryCRUD:
             session.refresh(category)
 
             # Обновляем кеш
-            await CategoryCRUD.cache.update_data(str(category_id), kwargs)
+            await cache.update_data(str(category_id), kwargs)
         return category
 
     @staticmethod
@@ -347,20 +321,19 @@ class CategoryCRUD:
             session.commit()
 
             # Удаляем из кеша
-            await CategoryCRUD.cache.delete(str(category_id))
+            await cache.delete(str(category_id))
             return True
         return False
 
 
 class BookCRUD:
-    cache = CacheManager()
 
     @staticmethod
     async def create_book(
-            session: Session, user_id: int, name_book: str, content: dict, book_url: str, access_token: str, price: int, category_id: int
+        session: Session, user_id: str, name_book: str, content: dict, book_url: str, access_token: str, category_id: int
     ) -> Book:
-        """Создать книгу, создать заказ и обновить баланс."""
-        # Создаем книгу
+        """Создать книгу."""
+        # Создаём книгу
         book = Book(
             user_id=user_id, name_book=name_book, content=content,
             book_url=book_url, access_token=access_token, category_id=category_id
@@ -369,92 +342,90 @@ class BookCRUD:
         session.commit()
         session.refresh(book)
 
-        # Создаем заказ и обновляем баланс (проверка уже в OrderCRUD)
-        await OrderCRUD.create_order(session, user_id, book.id, price, book_url)
-
-        # Добавляем книгу в кеш
-        await BookCRUD.cache.set_data(str(book.id), {
-            "id": book.id,
-            "user_id": book.user_id,
-            "name_book": book.name_book,
-            "content": book.content,
-            "book_url": book.book_url,
-            "access_token": book.access_token
-        })
-
         return book
+
+    @staticmethod
+    async def get_all_books(session: Session) -> list[Book]:
+        """Получить книгу из кеша или БД."""
+        cache_key = "all_books"
+        cached_books = await cache.get_data(cache_key)
+        if cached_books:
+            return [Book.from_dict(book_data) for book_data in cached_books]
+
+        # Если в кеше нет, берем из БД
+        books = session.query(Book).all()
+        result = [book.to_dict() for book in books]
+        await cache.set_data(cache_key, result)
+        return books
 
     @staticmethod
     async def get_book_by_id(session: Session, book_id: int) -> Book:
         """Получить книгу из кеша или БД."""
-        cached_book = await BookCRUD.cache.get_data(str(book_id))
+        cached_book = await cache.get_data(str(book_id))
         if cached_book:
-            return dict_to_model(Book, cached_book)
+            return [Book.from_dict(cached_book)]
 
         # Если в кеше нет, берем из БД
         book = session.query(Book).filter(Book.id == book_id).first()
         if book:
-            await BookCRUD.cache.set_data(str(book.id), {
-                "id": book.id,
-                "user_id": book.user_id,
-                "name_book": book.name_book,
-                "content": book.content,
-                "book_url": book.book_url,
-                "access_token": book.access_token
-            })
+            await cache.set_data(str(book.id), book.to_dict())
         return book
 
     @staticmethod
-    async def get_books_by_user_id(session: Session, user_id: int):
-        """Получить все книги пользователя (без кеша)."""
-        cached_books = await BookCRUD.cache.get_data('books_'+user_id)
+    async def get_books_by_user_id(session: Session, user_id: int) -> list[Book]:
+        """Получить все книги пользователя (с поддержкой кеша)."""
+        cache_key = f'books_{user_id}'
+        cached_books = await cache.get_data(cache_key)
+        # Если данные есть в кеше, преобразуем их в объекты модели Book
         if cached_books:
-            return dict_to_model(Book, cached_books)
+            return [Book.from_dict(book_data) for book_data in cached_books]
 
+        # Если данных в кеше нет, получаем их из базы данных
         books = session.query(Book).filter(Book.user_id == user_id).all()
-        result = [
-            {
-                "id": book.id,
-                "name_book": book.name_book,
-                "description_book": book.description_book,
-                "book_url": book.book_url,
-            }
-            for book in books
-        ]
-        await BookCRUD.cache.set_data(f'books_{user_id}', result)
-        return result
+
+        # Преобразуем книги в список словарей и сохраняем в кеше
+        result = [book.to_dict() for book in books]
+        await cache.set_data(cache_key, result)
+
+        # Преобразуем данные в список объектов модели Book перед возвратом
+        return books
 
     @staticmethod
-    async def get_all_books_by_category_code(session: Session, category_code: str):
-        """Получить все книги по коду категории."""
-        cached_books = await BookCRUD.cache.get_data(f'#c_{category_code}')
+    async def get_all_books_by_category_code(session: Session, category_code: str) -> list[Book]:
+        """
+        Получить все книги по коду категории (с поддержкой кеша).
+        """
+        cache_key = f'books={category_code}'
+
+        # Проверяем кеш
+        cached_books = await cache.get_data(cache_key)
         if cached_books:
-            return dict_to_model(Book, cached_books)
+            return [Book.from_dict(book_data) for book_data in cached_books]
+
+        # Получаем все книги (из кеша или БД)
+        books = await BookCRUD.get_all_books(session)
+        if not books:
+            return []
 
         # Получаем категорию по коду
-        category = session.query(Category).filter(
-            Category.code == category_code).first()
+        category = await CategoryCRUD.get_category_by_category_code(session, category_code)
+
         if not category:
             return []
 
-        # Получаем книги, связанные с категорией
-        books = session.query(Book).filter(
-            Book.category_id == category.id).all()
+        # Фильтруем книги по id категории
+        filtered_books = [
+            book for book in books if str(book.category_id) == str(category.id)]
 
-        result = [
-            {
-                "id": book.id,
-                "title": book.name_book,
-                "description": book.description_book or 'Нет описания',
-                "image_url": "https://i.imgur.com/Dnm3RRZ.png",
-                "book_url": book.book_url,
-            }
-            for book in books
-        ]
+        if not filtered_books:
+            return []
 
-        if result:
-            await BookCRUD.cache.set_data(f'#c_{category_code}', result)
-        return result
+        # Преобразуем книги в список словарей
+        result = [book.to_dict() for book in filtered_books]
+
+        # Сохраняем результат в кеше
+        await cache.set_data(cache_key, result)
+        return filtered_books
 
     @staticmethod
     async def update_book(session: Session, book_id: int, **kwargs) -> Book:
@@ -463,11 +434,11 @@ class BookCRUD:
         if book:
             for key, value in kwargs.items():
                 setattr(book, key, value)
-            session.commit()
-            session.refresh(book)
+        session.commit()
+        session.refresh(book)
 
-            # Обновляем кеш
-            await BookCRUD.cache.update_data(str(book_id), kwargs)
+        # Обновляем кеш
+        await cache.update_data(str(book_id), kwargs)
         return book
 
     @staticmethod
@@ -479,6 +450,6 @@ class BookCRUD:
             session.commit()
 
             # Удаляем из кеша
-            await BookCRUD.cache.delete(str(book_id))
+            await cache.delete(str(book_id))
             return True
         return False

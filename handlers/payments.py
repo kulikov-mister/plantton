@@ -112,7 +112,7 @@ async def cmd_pro(message: Message, state: FSMContext, translator: LocalizedTran
         await message.answer(translator.get('not_user_message'))
         return
 
-    # return await send_message_admin(str(user.pro))
+    # return await send_message_admin(str(user_id))
     # return await send_message_admin(str(user.charge_id))
     if user.pro:
         # Если у пользователя статус PRO
@@ -347,7 +347,6 @@ async def successful_payment_handler(message: Message, state: FSMContext, bot: B
 
     elif payload_type == 'pro':
         success = await PaymentCRUD.create_payment_with_update_status(session, user_id, amount, charge_id, True, 30)
-
         answer_sticker = 'CAACAgEAAxkBAAII6Gd-gEk6uSGUNfdFQjbUxVdnzVseAAIDCQAC43gEAAGmNc2l6ho94jYE'
 
     if success:
@@ -367,9 +366,10 @@ async def successful_payment_handler(message: Message, state: FSMContext, bot: B
             try:
                 # отмена подписки
                 # await bot.edit_user_star_subscription(user_id, charge_id, True)
+
                 # попытка вернуть средства
-                # rs = await bot.refund_star_payment(user_id=user_id, telegram_payment_charge_id=charge_id)
-                ...
+                await bot.refund_star_payment(user_id=user_id, telegram_payment_charge_id=charge_id)
+
             except TelegramBadRequest as e:
                 if e.message == 'Bad Request: CHARGE_ALREADY_REFUNDED':
                     await send_message_admin(f'⚠️ <b>Возврат был осуществлен ранее:\nUser ID:</b> {user_id}\n\n<b>Charge ID:</b> <i>{charge_id}</i>')

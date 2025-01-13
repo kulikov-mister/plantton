@@ -9,3 +9,4 @@ fluentogram
 markdown
 bleach
 tqdm
+openai

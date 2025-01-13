@@ -26,10 +26,22 @@ class User(Base):
     subscribed = Column(Boolean, default=False)  # Статус подписки на новости
     date = Column(DateTime, default=datetime.now())
 
-    # Связь с платежами и книгами
-    payments = relationship('Payment', back_populates='user')
-    books = relationship('Book', back_populates='user')
-    orders = relationship('Order', back_populates='user')
+    def to_dict(self):
+        """Преобразует объект модели в словарь."""
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "pro": self.pro,
+            "charge_id": self.charge_id,
+            "balance": self.balance,
+            "subscribed": self.subscribed,
+            "date": self.date.isoformat() if isinstance(self.date, datetime) else self.date,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        """Создает объект модели из словаря."""
+        return cls(**data)
 
 
 # 2. Модель платежей
@@ -43,8 +55,21 @@ class Payment(Base):
     date = Column(DateTime, default=datetime.now())
     refunded = Column(Boolean, default=False)  # Статус возврата транзакции
 
-    # Связь с пользователем
-    user = relationship('User', back_populates='payments')
+    def to_dict(self):
+        """Преобразует объект модели в словарь."""
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "amount": self.amount,
+            "charge_id": self.charge_id,
+            "date": self.date.isoformat() if isinstance(self.date, datetime) else self.date,
+            "refunded": self.refunded,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        """Создает объект модели из словаря."""
+        return cls(**data)
 
 
 # 3. Модель заказов
@@ -58,9 +83,21 @@ class Order(Base):
     book_url = Column(String, nullable=False)  # Ссылка на книгу
     date = Column(DateTime, default=datetime.now())
 
-    # Связи с пользователем и книгой
-    user = relationship('User', back_populates='orders')
-    book = relationship('Book', back_populates='orders')
+    def to_dict(self):
+        """Преобразует объект модели в словарь."""
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "book_id": self.book_id,
+            "amount": self.amount,
+            "book_url": self.book_url,
+            "date": self.date.isoformat() if isinstance(self.date, datetime) else self.date,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        """Создает объект модели из словаря."""
+        return cls(**data)
 
 
 # 4. Модель категорий книг
@@ -74,8 +111,22 @@ class Category(Base):
     description = Column(String, nullable=False)  # Описание категории
     img = Column(String, nullable=False)  # Ссылка на картинку категории
     translations = Column(JSON, default={})  # Переводы названий
-    # Связь с книгами
-    books = relationship('Book', back_populates='category')
+
+    def to_dict(self):
+        """Преобразует объект модели в словарь."""
+        return {
+            "id": self.id,
+            "code": self.code,
+            "name": self.name,
+            "description": self.description,
+            "img": self.img,
+            "translations": self.translations,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        """Создает объект модели из словаря."""
+        return cls(**data)
 
 
 # 5. Модель книг
@@ -91,10 +142,23 @@ class Book(Base):
     book_url = Column(String, nullable=False)  # Ссылка на книгу
     access_token = Column(String, nullable=True)  # Токен для загрузки книги
 
-    # Связи
-    user = relationship('User', back_populates='books')
-    category = relationship('Category', back_populates='books')
-    orders = relationship('Order', back_populates='book')
+    def to_dict(self):
+        """Преобразует объект модели в словарь."""
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "category_id": self.category_id,
+            "name_book": self.name_book,
+            "description_book": self.description_book,
+            "content": self.content,
+            "book_url": self.book_url,
+            "access_token": self.access_token
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        """Создает объект модели из словаря."""
+        return cls(**data)
 
 
 # Создание всех таблиц

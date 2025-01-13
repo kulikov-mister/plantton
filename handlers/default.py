@@ -36,7 +36,7 @@ async def cmd_help(message: Message, state: FSMContext, translator: LocalizedTra
 
 # Хэндлер на команду /privacy
 @router.message(or_f(Command("privacy"), Command("start", magic=F.args.in_('privacy'))))
-async def cmd_privacy(message: Message, state: FSMContext, translator: LocalizedTranslator, session):
+async def cmd_privacy(message: Message, state: FSMContext, translator: LocalizedTranslator):
     privacy_url = ''
     msg = translator.get('privacy', url=privacy_url)
     await message.answer("Политика конфиденциальности")
@@ -44,7 +44,7 @@ async def cmd_privacy(message: Message, state: FSMContext, translator: Localized
 
 # Хэндлер на команду /terms
 @router.message(or_f(Command("terms"), Command("start", magic=F.args.in_('terms'))))
-async def cmd_terms(message: Message, state: FSMContext, translator: LocalizedTranslator, session):
+async def cmd_terms(message: Message, state: FSMContext, translator: LocalizedTranslator):
     terms_url = ''
     msg = translator.get('terms', url=terms_url)
     await message.answer("Условия использования")

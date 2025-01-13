@@ -35,12 +35,12 @@ async def cmd_start_args_close(message: Message, state: FSMContext, translator: 
             await message.answer(translator.get('close_message'))
         case "error404":
             await message.answer(translator.get('code_404'))
-        case _:
-            await message.delete()  # удаляем сообщение
-            await state.clear()
+        # case _:
+        #     await message.delete()  # удаляем сообщение
+        #     await state.clear()
 
 
-# отработка кнопки подтверждения глав
+# пустой колбек
 @router.callback_query()
 async def callback_empty(call: CallbackQuery, state: FSMContext, translator: LocalizedTranslator):
     print(call.data)

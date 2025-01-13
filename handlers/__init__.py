@@ -1,7 +1,7 @@
 #
 from aiogram import Router
 from typing import List
-from . import default, admin, payments, books, donate, test, empty
+from . import default, admin, payments, books, donate, empty, test
 
 
 routers: List[Router] = [
@@ -10,8 +10,8 @@ routers: List[Router] = [
     payments.router,
     books.router,
     donate.router,
+    empty.router,
     test.router,
-    empty.router
 ]
 
 

@@ -192,5 +192,18 @@ async def create_book_in_telegraph(first_name: str, book_data, profile_name: str
     else:
         return None
 
+
+# Асинхронно получает страницу по URL.
+async def get_page(url: str, return_content: bool = False) -> json:
+    telegraph = Telegraph()
+    try:
+        result = await telegraph.get_page(url[19:], return_content=return_content)
+        return result
+    except Exception as e:
+        print(e)
+        return None
+
 #
-# asyncio.run(create_book_in_telegraph())
+# asyncio.run(get_page(url))
+#
+# asyncio.run(get_views_in_page(url, 2024, 1, 13))

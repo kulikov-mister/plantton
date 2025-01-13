@@ -1,10 +1,8 @@
 # db/updater.py
-import logging
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.exc import SQLAlchemyError
 from db.models import Base, DATABASE_URL
-
-logging.basicConfig(level=logging.INFO)
+import logging
 
 
 def sync_database():
