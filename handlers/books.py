@@ -418,7 +418,7 @@ async def query_choose_books(inline_query: InlineQuery, state: FSMContext, trans
             id=str(i),
             title=f'{translator.get("description_part_1")} {i}',
             description=book.name_book,
-            thumbnail_url='https://i.imgur.com/Dnm3RRZ.png',
+            thumbnail_url='https://i.gifer.com/origin/c9/c9be20ebec1e40b9e2ed8488253c44b0_w200.gif' or 'https://i.imgur.com/Dnm3RRZ.png',
             input_message_content=InputTextMessageContent(
                 message_text=f'''📚 <b><a href="{
                     book.book_url}">{book.name_book}</a></b>''',
