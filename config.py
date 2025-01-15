@@ -28,7 +28,7 @@ thumbnails_books = [
 thumbnail_default = 'https://i.imgur.com/2dLhsnL.png'
 
 
-# Включаем логирование, чтобы не пропустить важные сообщения
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S')
+# Включаем логирование
+logging.basicConfig(
+    level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S'
+)

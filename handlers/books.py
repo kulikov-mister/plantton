@@ -16,7 +16,7 @@ from filters.base import IsAdmin, IsAuth
 from keyboards.inline_builder import get_paginated_keyboard
 
 from lang.translator import LocalizedTranslator
-from db.crud import UserCRUD, PaymentCRUD, BookCRUD, CategoryCRUD
+from db.crud import UserCRUD, BookCRUD, CategoryCRUD
 
 from config import bot, thumbnails_books, thumbnail_default
 from utils.code_generator import generate_random_string_async_lower
@@ -526,7 +526,7 @@ async def query_search_my_books(inline_query: InlineQuery, state: FSMContext, tr
     )
 
 
-# TODO: добавить поиск книг по названию у авторизованного пользователя
+# TODO: изменить поиск книг по названию по алфавиту
 # инлайн режим для поиска книг
 @router.inline_query(F.query.startswith('all'))
 async def query_search_all_books(inline_query: InlineQuery, state: FSMContext, translator: LocalizedTranslator, session) -> None:

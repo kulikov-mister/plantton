@@ -15,7 +15,7 @@ from filters.base import IsAdmin, IsAuth
 from keyboards.inline_builder import get_paginated_keyboard
 
 from lang.translator import LocalizedTranslator
-from db.crud import UserCRUD, PaymentCRUD, BookCRUD, CategoryCRUD
+from db.crud import UserCRUD, BookCRUD, CategoryCRUD
 
 from config import dp, bot, admin_ids, admin_ids_str, base_dir
 from utils.telegra_ph import get_page
@@ -59,7 +59,7 @@ async def cmd_update_views(message: Message, state: FSMContext, translator: Loca
         [f'<b>- {i}</b>. <a href="{r.get('url')}">{r.get('title')}</a> | Views: {r.get('views')}\n' for i, r in enumerate(sorted(res, key=lambda p: p.get('views'), reverse=True)[:10], start=1)])
     books_stat_msg = '<b>Топ 10 книг месяца:</b>\n\n'+books_stat
     await message.answer(books_stat_msg, disable_web_page_preview=True)
-    await bot.send_message('@app5_news', books_stat_msg, disable_web_page_preview=True)
+    # await bot.send_message('@app5_news', books_stat_msg, disable_web_page_preview=True)
 
 # ----------------------------------- добавить категорию -------------------------------------- #
 

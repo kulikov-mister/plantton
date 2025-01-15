@@ -49,6 +49,42 @@ async def generate_topics_book(query_topics: str, qt_topics: int = 10, type: str
         return None, books_topics
 
 
+# генерация глав для книги
+async def generate_themes_book(category: str, qt_themes: int = 10, type: str = 'Gemini'):
+    prompt = f"""
+Представь мы пишем маленькую книгу на академическую тему в категории: {category} объёмом до 10 листов A4.
+Напиши список из {qt_themes} таких тем в этой категории, которые были бы интересны широкому кругу читателей.
+Темы книги должны быть рандомно на русском или английском языке.
+Используй list схему:
+[ "название 1й темы", "название 2й темы", ..., "название {qt_themes}й темы"]
+Верни чистый список без форматирования и лишних символов - [...]
+"""
+    if type == 'Gemini':
+        client = GeminiClient(gemini_api_key)
+        result, books_topics = await client.generate_text(prompt)
+        books_topics_json = json.loads(books_topics)
+    elif type == 'Openai':
+        client = OpenAI(openai_api_key)
+        result, books_topics = await client.generate_text(prompt)
+        print(books_topics)
+        # Оборачиваем в квадратные скобки, если это не валидный JSON
+        formatted_content = f'[{books_topics}]' if not books_topics.startswith(
+            '[') else books_topics
+        books_topics_json = json.loads(formatted_content)
+    else:
+        return None, "Тип генерации не определен"
+
+    if result:
+        if not isinstance(books_topics_json, list):
+            return None, "Полученные данные не являются списком."
+        if len(books_topics_json) < qt_themes:
+            return None, "Полученные данные не содержат 10 глав."
+        else:
+            return True, books_topics_json[:qt_themes]
+    else:
+        return None, books_topics
+
+
 # генерация книги
 async def generate_book(query_topics: str, books_topics_json, type: str = 'Gemini'):
     if type == 'Gemini':

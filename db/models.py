@@ -72,34 +72,6 @@ class Payment(Base):
         return cls(**data)
 
 
-# 3. Модель заказов
-class Order(Base):
-    __tablename__ = 'orders'
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('users.id'))  # ID пользователя
-    book_id = Column(Integer, ForeignKey('books.id'))  # ID книги
-    amount = Column(Integer, default=0)  # Сумма списания во внутренней валюте
-    book_url = Column(String, nullable=False)  # Ссылка на книгу
-    date = Column(DateTime, default=datetime.now())
-
-    def to_dict(self):
-        """Преобразует объект модели в словарь."""
-        return {
-            "id": self.id,
-            "user_id": self.user_id,
-            "book_id": self.book_id,
-            "amount": self.amount,
-            "book_url": self.book_url,
-            "date": self.date.isoformat() if isinstance(self.date, datetime) else self.date,
-        }
-
-    @classmethod
-    def from_dict(cls, data):
-        """Создает объект модели из словаря."""
-        return cls(**data)
-
-
 # 4. Модель категорий книг
 class Category(Base):
     __tablename__ = 'categories'

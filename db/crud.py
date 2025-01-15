@@ -1,7 +1,7 @@
 # db/crud/crud.py
 import json
 from datetime import datetime, timedelta
-from db.models import User, Payment, Order, Category, Book
+from db.models import User, Payment, Category, Book
 from sqlalchemy.orm import Session
 from utils.cache_utils import CacheManager
 from utils.code_generator import generate_random_string_async_lower
@@ -169,56 +169,6 @@ class PaymentCRUD:
             Payment.id == payment_id).first()
         if payment:
             session.delete(payment)
-            session.commit()
-            return True
-        return False
-
-
-class OrderCRUD:
-
-    @staticmethod
-    async def create_order(session: Session, user_id: str, book_id: int, amount: int, book_url: str) -> Order:
-        """Создать новый заказ."""
-        # Проверяем баланс пользователя
-        user = session.query(User).filter(User.user_id == user_id).first()
-        if not user:
-            raise ValueError(f"Пользователь с ID {user_id} не найден.")
-        if user.balance < amount:
-            raise ValueError("Недостаточно средств для создания заказа.")
-
-        # Списываем средства
-        user.balance -= amount
-        session.commit()
-        session.refresh(user)
-
-        # Сбрасываем кеш пользователя
-        await cache.delete(user_id)
-
-        # Создаём заказ
-        order = Order(user_id=user_id, book_id=book_id,
-                      amount=amount, book_url=book_url)
-        session.add(order)
-        session.commit()
-        session.refresh(order)
-
-        return order
-
-    @staticmethod
-    async def get_orders_by_user_id(session: Session, user_id: int):
-        """Получить список заказов пользователя."""
-        return session.query(Order).filter(Order.user_id == user_id).all()
-
-    @staticmethod
-    async def get_order_by_id(session: Session, order_id: int):
-        """Получить заказ по ID."""
-        return session.query(Order).filter(Order.id == order_id).first()
-
-    @staticmethod
-    async def delete_order(session: Session, order_id: int) -> bool:
-        """Удалить заказ."""
-        order = session.query(Order).filter(Order.id == order_id).first()
-        if order:
-            session.delete(order)
             session.commit()
             return True
         return False
