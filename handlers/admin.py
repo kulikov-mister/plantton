@@ -57,7 +57,7 @@ async def cmd_update_views(message: Message, state: FSMContext, translator: Loca
 
     books_stat = ''.join(
         [f'<b>- {i}</b>. <a href="{r.get('url')}">{r.get('title')}</a> | Views: {r.get('views')}\n' for i, r in enumerate(sorted(res, key=lambda p: p.get('views'), reverse=True)[:10], start=1)])
-    books_stat_msg = '<b>Самые просматриваемые книги месяца:</b>\n\n'+books_stat
+    books_stat_msg = '<b>Топ 10 книг месяца:</b>\n\n'+books_stat
     await message.answer(books_stat_msg, disable_web_page_preview=True)
     await bot.send_message('@app5_news', books_stat_msg, disable_web_page_preview=True)
 
