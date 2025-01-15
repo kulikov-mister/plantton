@@ -59,9 +59,12 @@ async def generate_book(query_topics: str, books_topics_json, type: str = 'Gemin
         return None, "Тип генерации не определен"
 
     full_book = {}
-    # for bt in tqdm(books_topics_json, desc='Генерация книги'):
+    max_retries = 3  # Максимальное количество попыток для каждой главы
+    retry_delay = 5  # Задержка перед повторной попыткой
+
     for bt in books_topics_json:
-        prompt_topic = f"""
+        for attempt in range(max_retries):  # Цикл попыток для каждой главы
+            prompt_topic = f"""
 Мы пишем книгу на тему: {query_topics}.
 Сейчас напиши подробно главу для этой книги на тему {bt}.
 Используй тот язык для главы, на котором написана тема: {query_topics}
@@ -69,22 +72,33 @@ async def generate_book(query_topics: str, books_topics_json, type: str = 'Gemin
 Используй обязательно частое форматирование и эмодзи для украшения главы.
 Верни только текст главы с форматированием без лишних комментариев.
 """
-        # генерация частей книги
-        result, books_topic = await client.generate_text(prompt_topic)
-        if result:
-            # Если пришёл список, соединяем элементы в строку с переносами
-            if isinstance(books_topic, list):
-                books_topic = "\n".join(books_topic)
-            # Преобразуем в строку, если это другой тип данных
-            elif not isinstance(books_topic, str):
-                books_topic = str(books_topic)
+            # Генерация главы
+            result, books_topic = await client.generate_text(prompt_topic)
 
-            # Добавляем в книгу
-            full_book[bt] = books_topic
+            if result:  # Успешно сгенерировано
+                if isinstance(books_topic, list):  # Если список, соединяем
+                    books_topic = "\n".join(books_topic)
+                elif not isinstance(books_topic, str):  # Преобразуем в строку
+                    books_topic = str(books_topic)
 
-            # пауза перед следующей главой
-            await asyncio.sleep(3)
-    # возврат полной книги
+                # Добавляем в книгу
+                full_book[bt] = books_topic
+                break  # Выходим из цикла попыток для этой главы
+            else:
+                print(f"Ошибка генерации для главы '{bt}': {books_topic}")
+                if attempt < max_retries - 1:
+                    print(f"Повторная попытка для главы '{
+                          bt}' через {retry_delay} секунд...")
+                    await asyncio.sleep(retry_delay)
+                else:
+                    print(f"Не удалось сгенерировать главу '{
+                          bt}' после {max_retries} попыток.")
+                    full_book[bt] = f"Не удалось сгенерировать главу: {
+                        books_topic}"
+
+        # Пауза перед следующей главой
+        await asyncio.sleep(3)
+
     return full_book
 
 

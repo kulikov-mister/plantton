@@ -15,6 +15,7 @@ class GeminiClient:
             self.model}:"
 
     #  генерирует текст
+
     async def generate_text(self, prompt: str):
         max_retries = 3  # Максимальное количество попыток
         retry_delay = 5  # Время ожидания между попытками в секундах
@@ -34,34 +35,29 @@ class GeminiClient:
 
                 except httpx.HTTPStatusError as e:
                     if e.response.status_code == 429:  # Too Many Requests
-                        if attempt < max_retries - 1:
-                            retry_after = int(e.response.headers.get(
-                                "Retry-After", retry_delay))
-                            print(
-                                f"Rate limited. Retrying after {retry_after} seconds...")
-                            await asyncio.sleep(retry_after)
-                            continue  # Переходим к следующей попытке
-                        else:
-                            print(f"Rate limited after multiple retries. Giving up.")
-                            return None, 'Rate limited after multiple retries. Giving up.'
+                        retry_after = int(e.response.headers.get(
+                            "Retry-After", retry_delay))
+                        print(f"Rate limited. Retrying after {
+                            retry_after} seconds...")
+                        await asyncio.sleep(retry_after)
+                        continue
                     else:
-                        print(f"HTTP error occurred: {e}")
-                        if e.response.content:
-                            details = e.response.json()
-                            print(details)
-                        return None, details
+                        error_message = f"HTTP error {
+                            e.response.status_code}: {e.response.text}"
+                        return None, error_message
 
                 except httpx.RequestError as e:
-                    print(f"An error occurred during the request: {e}")
-                    return None, e
+                    error_message = f"Request error: {e}"
+                    return None, error_message
+
                 except KeyError as e:
-                    print(
-                        # added check for response existence
-                        f"Unexpected response format: Missing key {e}. Response: {response.text if response else 'No response'}")
-                    return None, e
+                    error_message = f"Unexpected response format: Missing key {
+                        e}. Response: {response.text if response else 'No response'}"
+                    return None, error_message
+
                 except Exception as e:
-                    print(f"An unexpected error occurred: {e}")
-                    return None, e
+                    error_message = f"Unexpected error: {e}"
+                    return None, error_message
 
     # закрывает клиент
     async def close(self):

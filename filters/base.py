@@ -11,7 +11,6 @@ import json
 from aiogram.filters import BaseFilter
 from aiogram.types import Message, CallbackQuery, InlineQuery
 
-from logging import getLogger
 from config import bot, admin_ids_str
 from db.crud import UserCRUD
 from utils.bot_configs import set_bot_configs
@@ -41,11 +40,11 @@ class IsAuth(BaseFilter):
 
     async def __call__(self, obj: object, session, translator) -> bool:
         # Определяем user_id в зависимости от типа события
-        if isinstance(obj, (Message, CallbackQuery)):
+        if isinstance(obj, Message):
             user_id: int = obj.chat.id
             language_code = obj.from_user.language_code
             data_str = obj.text
-        elif isinstance(obj, (CallbackQuery)):
+        elif isinstance(obj, CallbackQuery):
             user_id: int = obj.chat.id
             language_code = obj.from_user.language_code
             data_str = obj.data
@@ -57,15 +56,16 @@ class IsAuth(BaseFilter):
             return False
 
         logging.info(f"IsAuth filter called for user_id: {
-                     obj.chat.id} | text: {data_str}")
+                     user_id} | text: {data_str}")
+
         # Проверяем пользователя в базе данных
-        user = await UserCRUD.get_user_by_user_id(session, str(user_id))
+        user = await UserCRUD.get_user_by_user_id(session, user_id)
         if not user:
             user = await UserCRUD.create_user(session, str(user_id))
             await set_bot_configs(bot, language_code)
             await obj.answer(translator.get('registration_success'))
 
-            # Если указан для проверки баланс
+        # Если указан для проверки баланс
         if self.check_balance:
             if user.balance <= self.check_balance:
                 # Сообщение о низком балансе
@@ -73,6 +73,6 @@ class IsAuth(BaseFilter):
                 msg = translator.get('low_balance', limit=str(
                     self.check_balance), balance=user.balance, pro=pro)
                 await obj.answer(msg)
-                return False  # Не пропускаем пользователя в хендлер
+                return False
 
-            return True  # Пропускаем пользователя к хендлеру
+        return True  # Пропускаем пользователя к хендлеру

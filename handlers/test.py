@@ -13,7 +13,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.strategy import FSMStrategy
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, URLInputFile
 from aiogram.exceptions import TelegramBadRequest
 
 from lang.translator import LocalizedTranslator
@@ -21,7 +21,7 @@ from db.crud import UserCRUD, PaymentCRUD, BookCRUD, CategoryCRUD
 from utils.telegram import send_message_admin
 from utils.tools import read_data_file
 
-from config import dp, bot, admin_ids, admin_ids_str, base_dir
+from config import dp, bot, get_file_url, admin_ids, admin_ids_str, base_dir
 from filters.base import IsAdmin
 
 router = Router()
@@ -38,22 +38,26 @@ class States(StatesGroup):
 # отработка  тест стикеров
 @router.message(F.sticker)
 async def message_sticker_test(message: Message, state: FSMContext, translator: LocalizedTranslator):
-    await state.clear()
-    await message.answer(message.sticker.file_id)
+    file = await bot.get_file(message.sticker.file_id)
+    url = f'{get_file_url}{file.file_path}'
+    await message.answer(url)
+    await message.answer_animation(URLInputFile(url))
 
 
 # отработка  тест фото
 @router.message(F.photo)
 async def message_photo_test(message: Message, state: FSMContext, translator: LocalizedTranslator):
-    await state.clear()
-    await message.answer(message.photo[-1].file_id)
+    file = await bot.get_file(message.photo[-1].file_id)
+    url = f'{get_file_url}{file.file_path}'
+    await message.answer(url)
 
 
 # отработка  тест видео
 @router.message(F.video)
 async def message_video_test(message: Message, state: FSMContext, translator: LocalizedTranslator):
-    await state.clear()
-    await message.answer(message.video.file_id)
+    file = await bot.get_file(message.video.file_id)
+    url = f'{get_file_url}{file.file_path}'
+    await message.answer(url)
 
 
 # Хэндлер на команду /test

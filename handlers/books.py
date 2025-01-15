@@ -1,5 +1,6 @@
 # handlers/admin.py
 from typing import List, Tuple, Any
+import random
 import json
 
 from aiogram.filters.command import Command
@@ -17,7 +18,7 @@ from keyboards.inline_builder import get_paginated_keyboard
 from lang.translator import LocalizedTranslator
 from db.crud import UserCRUD, PaymentCRUD, BookCRUD, CategoryCRUD
 
-from config import dp, bot, admin_ids, admin_ids_str, base_dir
+from config import bot, thumbnails_books
 from utils.code_generator import generate_random_string_async_lower
 from utils.telegram import send_message_admin
 from utils.telegram import send_message_admin
@@ -126,6 +127,7 @@ async def set_query_book(message: Message, state: FSMContext, translator: Locali
     query_book = message.text
     user_data = await state.get_data()
     qt_topics = user_data.get('qt_topics')
+    price = 5 + 5*qt_topics
     category = user_data.get('category')
     categories = await CategoryCRUD.get_all_categories(session)
     category_str = next(
@@ -133,7 +135,7 @@ async def set_query_book(message: Message, state: FSMContext, translator: Locali
 
     msg = translator.get(
         'set_query_book', query_book=query_book,
-        qt_topics=qt_topics, category_str=category_str
+        qt_topics=qt_topics, category_str=category_str, price=price
     )
     buttons = [
         [InlineKeyboardButton(text=translator.get(
@@ -262,12 +264,14 @@ async def callback_next_2(call: CallbackQuery, state: FSMContext, translator: Lo
                 await call.message.answer_sticker(err_sticker)
                 await call.message.answer(translator.get('book_create_error'))
                 await send_message_admin(translator.get('book_create_error_admin', user_id=user_id, msg_book=msg_book))
+                return
+            else:
+                await call.message.answer(translator.get('order_create_message_ok', price=price))
+                message = await call.message.answer_sticker(success_sticker)
+                await call.message.answer(msg_book)
 
-            await call.message.answer(translator.get('order_create_message_ok', price=price))
-            message = await call.message.answer_sticker(success_sticker)
-            # отправка готовой ссылки
-            await call.message.answer(msg_book)
-            await state.clear()  # очистка данных пользователя
+            # очистка данных пользователя
+            await state.clear()
 
         else:
             await call.message.answer_sticker(err_sticker)
@@ -413,19 +417,36 @@ async def query_choose_books(inline_query: InlineQuery, state: FSMContext, trans
         return
 
     # Генерация результатов
-    results = [
-        InlineQueryResultArticle(
-            id=str(i),
-            title=f'{translator.get("description_part_1")} {i}',
-            description=book.name_book,
-            thumbnail_url='https://i.gifer.com/origin/c9/c9be20ebec1e40b9e2ed8488253c44b0_w200.gif' or 'https://i.imgur.com/Dnm3RRZ.png',
-            input_message_content=InputTextMessageContent(
-                message_text=f'''📚 <b><a href="{
-                    book.book_url}">{book.name_book}</a></b>''',
-                parse_mode='HTML'
+    thumbnail_default = 'https://i.imgur.com/2dLhsnL.png'
+    previous_thumbnail = None
+
+    results = []
+    for i, book in chunk_list:
+        # Выбор случайной ссылки, которая отличается от предыдущей
+        if len(thumbnails_books) > 1:
+            thumbnail_url = random.choice(
+                [thumb for thumb in thumbnails_books if thumb != previous_thumbnail])
+        else:
+            # Если в массиве только одна ссылка, использовать её
+            thumbnail_url = thumbnails_books[0] if thumbnails_books else thumbnail_default
+
+        # Обновление предыдущей ссылки
+        previous_thumbnail = thumbnail_url
+
+        # Добавление результата в список
+        results.append(
+            InlineQueryResultArticle(
+                id=str(i),
+                title=f'{translator.get("description_part_1")} {i}',
+                description=book.name_book,
+                thumbnail_url=thumbnail_url,
+                input_message_content=InputTextMessageContent(
+                    message_text=f'''📚 <b><a href="{
+                        book.book_url}">{book.name_book}</a></b>''',
+                    parse_mode='HTML'
+                )
             )
-        ) for i, book in chunk_list
-    ]
+        )
 
     # Отправка результатов с возвратом к категориям
     next_offset = str(offset + len(chunk_list)

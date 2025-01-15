@@ -9,6 +9,7 @@ from utils.code_generator import generate_random_string_async_lower
 cache = CacheManager()
 
 
+# TODO: переписать все классы под единую функцию-обёртку объединяющую работу с кешем
 class UserCRUD:
 
     @staticmethod

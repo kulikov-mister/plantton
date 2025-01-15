@@ -16,11 +16,12 @@ class CacheManager:
         self.default_ttl = ttl
 
     async def set_data(self, key, value, ttl=None):
+        """Добавление данных в кэш с проверкой на существование."""
         ttl = ttl if ttl is not None else self.default_ttl
         await self.cache.set(key, value, ttl=ttl)
 
         # Добавляем ключ в список отслеживаемых ключей, если он не GLOBAL
-        if key != "GLOBAL":  # Исключаем GLOBAL из трекера
+        if key != "GLOBAL":
             tracked_keys = await self.cache.get(self.KEY_TRACKER) or []
             if key not in tracked_keys:
                 tracked_keys.append(key)
@@ -38,7 +39,7 @@ class CacheManager:
 
     async def get_data(self, key):
         print(f"Получение данных по ключу {key}...")
-        data = await self.cache.get(key)
+        data = await self.cache.get(str(key))
         if data is not None:
             print(f"Данные по ключу '{key}' успешно получены.")
         return data
@@ -78,14 +79,15 @@ class CacheManager:
         """Сохраняет кэш в файл."""
         try:
             keys = await self.get_all_keys()
+            # print(f"Всего ключей: {keys}")
             if not keys:  # Don't save if no tracked keys
                 return "Кэш пуст. Нечего сохранять."
 
             all_data = {}
             for key in keys:  # Only save tracked keys
-                data = await self.cache.get(key)
+                data = await self.cache.get(str(key))
                 if data:
-                    all_data[key] = data
+                    all_data[str(key)] = data
 
             # Add GLOBAL data if present.
             global_data = await self.cache.get("GLOBAL")
@@ -93,6 +95,8 @@ class CacheManager:
                 all_data["GLOBAL"] = global_data
 
             full_file_path = os.path.join(base_dir, cache_file_path)
+
+            # Открываем файл в режиме записи, что автоматически очищает его.
             async with aiofiles.open(full_file_path, 'w', encoding='utf-8') as f:
                 await f.write(json.dumps(all_data, ensure_ascii=False, indent=4))
 

@@ -106,14 +106,8 @@ async def cmd_pro(message: Message, state: FSMContext, translator: LocalizedTran
     amount_stars = 1 if message.from_user.id in admin_ids else amount
 
     # Чтение данных пользователя
-    user = await UserCRUD.get_user_by_user_id(session, str(user_id))
-    if not user:
-        # Если пользователя нет в БД
-        await message.answer(translator.get('not_user_message'))
-        return
+    user = await UserCRUD.get_user_by_user_id(session, user_id)
 
-    # return await send_message_admin(str(user_id))
-    # return await send_message_admin(str(user.charge_id))
     if user.pro:
         # Если у пользователя статус PRO
         if user.charge_id:
@@ -202,12 +196,9 @@ async def create_book_pagination(call: CallbackQuery, state: FSMContext, transla
     # колбек в кнопке
     call_data = call.data
     user_id = str(call.from_user.id)
+
     # читаем пользователя
     user = await UserCRUD.get_user_by_user_id(session, user_id)
-    if not user:
-        await call.message.answer(translator.get('not_user_message'))
-        return
-
     # если возобновление подписки
     is_canceled = False if call_data == 'restart_pro' else True
     status = True if call_data == 'restart_pro' else False
