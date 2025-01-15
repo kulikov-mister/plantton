@@ -30,5 +30,5 @@ async def auto_themes_creator():
     await write_data_file(f'books/all_themes.json', all_themes_data)
     return all_themes
 
-if __name__ == "__main__":
-    asyncio.run(auto_themes_creator)
+
+asyncio.run(auto_themes_creator)
