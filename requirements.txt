@@ -12,4 +12,5 @@ markdown
 bleach
 tqdm
 openai
+python-dotenv
 

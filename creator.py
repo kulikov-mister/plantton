@@ -8,14 +8,11 @@ from utils.open_ai import OpenAI
 from utils.tools import write_data_file
 from utils.telegra_ph import create_book_in_telegraph
 from utils.telegram import send_message_admin
-
-
-gemini_api_key = os.environ.get("GOOGLE_API_KEY")
-openai_api_key = os.environ.get("OPENAI_API_KEY")
+from config import GOOGLE_API_KEY, OPENAI_API_KEY
 
 
 # генерация глав для книги
-async def generate_topics_book(query_topics: str, qt_topics: int = 10, type: str = 'Gemini', gemini_api_key=gemini_api_key, openai_api_key=openai_api_key):
+async def generate_topics_book(query_topics: str, qt_topics: int = 10, type: str = 'Gemini', gemini_api_key: str = GOOGLE_API_KEY, openai_api_key: str = OPENAI_API_KEY):
     prompt = f"""
 Напиши список из {qt_topics} глав для книги на тему: {query_topics}.
 Используй тот язык, на котором написана тема: {query_topics}
@@ -50,7 +47,7 @@ async def generate_topics_book(query_topics: str, qt_topics: int = 10, type: str
 
 
 # генерация глав для книги
-async def generate_themes_book(category: str, qt_themes: int = 10, type: str = 'Gemini', gemini_api_key=gemini_api_key, openai_api_key=openai_api_key):
+async def generate_themes_book(category: str, qt_themes: int = 10, type: str = 'Gemini', gemini_api_key: str = GOOGLE_API_KEY, openai_api_key: str = OPENAI_API_KEY):
     prompt = f"""
 Представь мы пишем маленькую книгу на академическую тему в категории: {category} объёмом до 10 листов A4.
 Напиши список из {qt_themes} таких тем в этой категории, которые были бы интересны широкому кругу читателей.
@@ -86,7 +83,7 @@ async def generate_themes_book(category: str, qt_themes: int = 10, type: str = '
 
 
 # генерация книги
-async def generate_book(query_topics: str, books_topics_json, type: str = 'Gemini', gemini_api_key=gemini_api_key, openai_api_key=openai_api_key):
+async def generate_book(query_topics: str, books_topics_json, type: str = 'Gemini', gemini_api_key: str = GOOGLE_API_KEY, openai_api_key: str = OPENAI_API_KEY):
     if type == 'Gemini':
         client = GeminiClient(gemini_api_key)
     elif type == 'Openai':
@@ -136,45 +133,6 @@ async def generate_book(query_topics: str, books_topics_json, type: str = 'Gemin
         await asyncio.sleep(3)
 
     return full_book
-
-
-# старт создания книги
-async def start_create():
-    query_topics = input('Введите тему для книги: ')
-    if not query_topics:
-        print("Тема для книги не может быть пустой.")
-        return
-    client = GeminiClient(gemini_api_key)
-
-    try:
-        # генерация книги
-        books_topics, full_book = await generate_book(client, query_topics)
-        if not books_topics:
-            print('Главы для книги не созданы')
-            return
-        if not full_book:
-            print('Книга не создана или пустая')
-            return
-        # сохранение книги в файл
-        books_data = json.dumps({
-            'book_name': query_topics,
-            'books_topics': books_topics,
-            'full_book': full_book
-        }, ensure_ascii=False, indent=4)
-        await write_data_file(f'history/{query_topics}.json', books_data)
-        # print("Успешно сохранили книгу")
-        # book_data = await read_data_file(f'history/{query_topics}.json')
-        # создаем книгу в телеграфе
-        book_url = await create_book_in_telegraph(json.loads(books_data))
-        book_link_html = f'<a href="{book_url}">{query_topics}</a>'
-        await send_message_admin(book_link_html)
-
-    except json.JSONDecodeError as e:
-        print(
-            f"Ошибка декодирования JSON: {e}. Строка не является корректным JSON.")
-
-    except Exception as e:
-        print(f"Произошла ошибка: {e}")
 
 
 # старт бота

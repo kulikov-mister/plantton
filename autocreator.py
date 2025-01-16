@@ -18,7 +18,7 @@ from db.crud import CategoryCRUD
 from db.models import SessionLocal, Category, Book
 
 from contextlib import contextmanager
-from config import gemini_key
+from config import GEMINI_API_KEY, GOOGLE_API_KEY, GEMINI_API_KEY_1
 
 
 # открывает сессию при обращении с автозакрытием
@@ -112,8 +112,8 @@ class Creator:
 
 
 # Функция полностью создает книгу
-async def auto_book_creator():
-    if not gemini_key:
+async def auto_book_creator(gemini_api: str):
+    if not GEMINI_API_KEY:
         print(f'GeminiApiKey is None')
         return False
     try:
@@ -124,12 +124,12 @@ async def auto_book_creator():
             await asyncio.sleep(3)
 
             qt_topics = random.randint(5, 10)
-            result, topics = await generate_topics_book(theme, qt_topics, gemini_api_key=gemini_key)
+            result, topics = await generate_topics_book(theme, qt_topics, gemini_api_key=gemini_api)
             print('Получили главы')
             if result:
                 await asyncio.sleep(5)
                 # генерация книги
-                full_book = await generate_book(theme, topics, gemini_api_key=gemini_key)
+                full_book = await generate_book(theme, topics, gemini_api_key=gemini_api)
                 print('Получили книгу')
                 if full_book:
                     # сохранение книги в файл
@@ -194,7 +194,7 @@ async def auto_book_creator():
 
 
 # test create
-async def main1():
+async def main():
     #
     with get_session() as session:
         theme, all_themes, cat = await Creator.select_theme(session)
@@ -252,14 +252,18 @@ async def main1():
 
 
 # start create
-async def main():
+async def start_creator():
     # Включаем логирование
-    logging.basicConfig(
-        level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    await auto_book_creator()
+    # logging.basicConfig(
+    #     level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S'
+    # )
+    keys = [GEMINI_API_KEY, GOOGLE_API_KEY, GEMINI_API_KEY_1]
+    for k in keys:
+        if k:
+            await auto_book_creator(gemini_api=k)
+            await asyncio.sleep(2)
 
 
 # # старт
-if __name__ == "__main__":
-    asyncio.run(main())
+# if __name__ == "__main__":
+#     asyncio.run(main())

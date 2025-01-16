@@ -1,8 +1,14 @@
 import os
+from dotenv import load_dotenv
+
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.strategy import FSMStrategy
 from aiogram.fsm.storage.memory import MemoryStorage
+
+
+# подгружаем явно все переменные
+load_dotenv()
 
 token = os.environ.get("TELEGRAM_API_TOKEN")
 get_file_url = f'https://api.telegram.org/file/bot{token}/'
@@ -11,7 +17,9 @@ dp = Dispatcher(storage=MemoryStorage(), fsm_strategy=FSMStrategy.CHAT)
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL")
-gemini_key = os.environ.get("GEMINI_API_KEY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
+GEMINI_API_KEY_1 = os.environ.get("GEMINI_API_KEY_1")
 
 
 admin_ids = [6316305521]

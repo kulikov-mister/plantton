@@ -9,7 +9,7 @@ from db.models import SessionLocal
 
 from utils.telegra_ph import get_page
 from utils.telegram import send_message_admin
-from autocreator import auto_book_creator
+from autocreator import start_creator
 
 
 # Функция для обновления статистики просмотров книг
@@ -57,7 +57,7 @@ def setup_scheduler():
 
     # создавать книгу каждые полчаса
     scheduler.add_job(
-        auto_book_creator, CronTrigger(minute="*/30")
+        start_creator, CronTrigger(minute="*/30")
     )
 
     # Запуск планировщика
