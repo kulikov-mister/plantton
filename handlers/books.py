@@ -177,8 +177,8 @@ async def callback_next(call: CallbackQuery, state: FSMContext, translator: Loca
             for text, data in (
                 (translator.get(
                     "next_btn"), "next_2"),
-                (translator.get(
-                    "next_topics_btn"), "next_"),
+                # (translator.get(
+                #     "next_topics_btn"), "next_"),
                 (translator.get(
                     "close_btn"), "close")
             )

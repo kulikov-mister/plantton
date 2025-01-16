@@ -293,6 +293,9 @@ class BookCRUD:
         session.commit()
         session.refresh(book)
 
+        # чистим кеш
+        await cache.delete('all_books')
+
         return book
 
     @staticmethod

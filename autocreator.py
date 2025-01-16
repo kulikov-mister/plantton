@@ -18,7 +18,9 @@ from db.crud import CategoryCRUD
 from db.models import SessionLocal, Category, Book
 
 from contextlib import contextmanager
-from config import gemini_key
+
+gemini_key = os.environ.get("GEMINI_API_KEY")
+print(gemini_key)
 
 
 # открывает сессию при обращении с автозакрытием
@@ -113,7 +115,9 @@ class Creator:
 
 # Функция полностью создает книгу
 async def auto_book_creator():
-
+    if not gemini_key:
+        print(f'GeminiApiKey is None')
+        return False
     try:
         with get_session() as session:
             theme, all_themes, cat = await Creator.select_theme(session)
@@ -259,5 +263,5 @@ async def main():
 
 
 # # старт
-# if __name__ == "__main__":
-#     asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
