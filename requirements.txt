@@ -2,6 +2,7 @@ telegraph
 asyncio
 apscheduler
 schedule
+sqlalchemy
 httpx
 aiogram
 aiocache

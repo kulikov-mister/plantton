@@ -1,11 +1,13 @@
+# TCB-bot/lang/translator.py
 from typing import Dict, List, Optional, Tuple
 from fluent_compiler.bundle import FluentBundle
 from fluentogram import TranslatorHub, FluentTranslator, TranslatorRunner
+from config import base_dir
 
 
 FLUENT_DICTIONARIES_PATH_DICT: Dict[str, str] = {
-    "en": "lang/locales/en.ftl",
-    "ru": "lang/locales/ru.ftl",
+    "en": f"{base_dir}/lang/locales/en.ftl",
+    "ru": f"{base_dir}/lang/locales/ru.ftl",
 }
 
 FLUENT_TRANSLATORS: List[FluentTranslator] = [
