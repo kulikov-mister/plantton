@@ -1,6 +1,7 @@
 telegraph
 asyncio
 apscheduler
+schedule
 httpx
 aiogram
 aiocache
@@ -11,3 +12,4 @@ markdown
 bleach
 tqdm
 openai
+
