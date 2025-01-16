@@ -10,6 +10,8 @@ dp = Dispatcher(storage=MemoryStorage(), fsm_strategy=FSMStrategy.CHAT)
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL")
 get_file_url = f'https://api.telegram.org/file/bot{token}/'
+gemini_key = os.environ.get("GEMINI_API_KEY")
+
 
 admin_ids = [6316305521]
 admin_ids_str: int = admin_ids

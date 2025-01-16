@@ -18,9 +18,7 @@ from db.crud import CategoryCRUD
 from db.models import SessionLocal, Category, Book
 
 from contextlib import contextmanager
-
-gemini_key = os.environ.get("GEMINI_API_KEY")
-print(gemini_key)
+from config import gemini_key
 
 
 # открывает сессию при обращении с автозакрытием
