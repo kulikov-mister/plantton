@@ -1,4 +1,6 @@
 #
+import os
+import logging
 import json
 import asyncio
 import random
@@ -16,8 +18,10 @@ from db.crud import CategoryCRUD
 from db.models import SessionLocal, Category, Book
 
 from contextlib import contextmanager
+from config import gemini_key
 
 
+# открывает сессию при обращении с автозакрытием
 @contextmanager
 def get_session():
     session = SessionLocal()
@@ -29,22 +33,43 @@ def get_session():
 
 class Creator:
 
-    # Функция полностью создает книгу
+    # Функция выбирает тему для книги
     @staticmethod
     async def select_theme(session: Session):
         try:
             cats = session.query(Category).all()
-            cat = random.choice(cats)
             all_themes = await read_data_file('books/all_themes.json')
-            themes = []
-            for t, data in all_themes.items():
-                if str(t) == str(cat.id):
-                    themes = data.get('themes')[1]
+
+            # Создаем список доступных категорий (id которых есть в all_themes)
+            available_cat_ids = [int(cat_id) for cat_id in all_themes]
+            available_cats = [
+                cat for cat in cats if cat.id in available_cat_ids]
+
+            if not available_cats:  # Проверяем, есть ли вообще доступные категории
+                return False, False, False
+
+            # Выбираем категорию из доступных
+            cat = random.choice(available_cats)
+            themes = all_themes.get(str(cat.id), {}).get(
+                'themes', [[]])[1]  # Безопасное получение тем
 
             if themes:
                 return random.choice(themes), all_themes, cat
 
-            return False, False, False,
+            # Логика повторного выбора, если темы не найдены для выбранной доступной категории.  Не должно срабатывать, но на всякий случай оставил.
+            else:
+                remaining_cats = available_cats.copy()
+                remaining_cats.remove(cat)
+                while remaining_cats:
+                    cat = random.choice(remaining_cats)
+                    themes = all_themes.get(
+                        str(cat.id), {}).get('themes', [[]])[1]
+                    if themes:
+                        return random.choice(themes), all_themes, cat
+                    remaining_cats.remove(cat)
+
+                return False, False, False  # Если темы не найдены ни для одной категории
+
         finally:
             session.close()
 
@@ -88,8 +113,8 @@ class Creator:
 
 # Функция полностью создает книгу
 async def auto_book_creator():
-    try:
 
+    try:
         with get_session() as session:
             theme, all_themes, cat = await Creator.select_theme(session)
         if theme and all_themes and cat:
@@ -97,12 +122,12 @@ async def auto_book_creator():
             await asyncio.sleep(3)
 
             qt_topics = random.randint(5, 10)
-            result, topics = await generate_topics_book(theme, qt_topics)
+            result, topics = await generate_topics_book(theme, qt_topics, gemini_api_key=gemini_key)
             print('Получили главы')
             if result:
                 await asyncio.sleep(5)
                 # генерация книги
-                full_book = await generate_book(theme, topics)
+                full_book = await generate_book(theme, topics, gemini_api_key=gemini_key)
                 print('Получили книгу')
                 if full_book:
                     # сохранение книги в файл
@@ -125,8 +150,7 @@ async def auto_book_creator():
                         }, ensure_ascii=False, indent=4)
                         # заносим книгу в папку история для хранения всех книг
                         await write_data_file(f'history/{theme}.json', full_books_data)
-                        msg_book = f'📚 <b><a href="{
-                            book_url}">{theme}</a></b>'
+                        msg_book = f'📚 <b><a href="{book_url}">{theme}</a></b>'
 
                         with get_session() as session:
                             # заносим в бд
@@ -142,8 +166,8 @@ async def auto_book_creator():
                                 try:
                                     all_themes[str(cat.id)]["themes"][1].remove(
                                         theme)
-                                    # if not all_themes[str(cat.id)]["themes"][1]:
-                                    #     del all_themes[str(cat.id)]
+                                    if not all_themes[str(cat.id)]["themes"][1]:
+                                        del all_themes[str(cat.id)]
                                     new_all_themes_data = json.dumps(
                                         all_themes, ensure_ascii=False, indent=4)
                                     await write_data_file('books/all_themes.json', new_all_themes_data)
@@ -227,6 +251,10 @@ async def main1():
 
 # start create
 async def main():
+    # Включаем логирование
+    logging.basicConfig(
+        level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S'
+    )
     await auto_book_creator()
 
 

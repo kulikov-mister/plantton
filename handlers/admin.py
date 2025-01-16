@@ -20,6 +20,7 @@ from db.crud import UserCRUD, BookCRUD, CategoryCRUD
 from config import dp, bot, admin_ids, admin_ids_str, base_dir
 from utils.telegra_ph import get_page
 from utils.telegram import send_message_admin
+from autocreator import auto_book_creator
 
 router = Router()
 # установка единых фильтров на админа
@@ -60,6 +61,11 @@ async def cmd_update_views(message: Message, state: FSMContext, translator: Loca
     books_stat_msg = '<b>Топ 10 книг месяца:</b>\n\n'+books_stat
     await message.answer(books_stat_msg, disable_web_page_preview=True)
     # await bot.send_message('@app5_news', books_stat_msg, disable_web_page_preview=True)
+
+
+@router.message(Command("new_book"))
+async def cmd_update_views(message: Message, state: FSMContext, translator: LocalizedTranslator, session):
+    await auto_book_creator()
 
 # ----------------------------------- добавить категорию -------------------------------------- #
 

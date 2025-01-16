@@ -15,7 +15,7 @@ openai_api_key = os.environ.get("OPENAI_API_KEY")
 
 
 # генерация глав для книги
-async def generate_topics_book(query_topics: str, qt_topics: int = 10, type: str = 'Gemini'):
+async def generate_topics_book(query_topics: str, qt_topics: int = 10, type: str = 'Gemini', gemini_api_key=gemini_api_key, openai_api_key=openai_api_key):
     prompt = f"""
 Напиши список из {qt_topics} глав для книги на тему: {query_topics}.
 Используй тот язык, на котором написана тема: {query_topics}
@@ -50,7 +50,7 @@ async def generate_topics_book(query_topics: str, qt_topics: int = 10, type: str
 
 
 # генерация глав для книги
-async def generate_themes_book(category: str, qt_themes: int = 10, type: str = 'Gemini'):
+async def generate_themes_book(category: str, qt_themes: int = 10, type: str = 'Gemini', gemini_api_key=gemini_api_key, openai_api_key=openai_api_key):
     prompt = f"""
 Представь мы пишем маленькую книгу на академическую тему в категории: {category} объёмом до 10 листов A4.
 Напиши список из {qt_themes} таких тем в этой категории, которые были бы интересны широкому кругу читателей.
@@ -86,7 +86,7 @@ async def generate_themes_book(category: str, qt_themes: int = 10, type: str = '
 
 
 # генерация книги
-async def generate_book(query_topics: str, books_topics_json, type: str = 'Gemini'):
+async def generate_book(query_topics: str, books_topics_json, type: str = 'Gemini', gemini_api_key=gemini_api_key, openai_api_key=openai_api_key):
     if type == 'Gemini':
         client = GeminiClient(gemini_api_key)
     elif type == 'Openai':
