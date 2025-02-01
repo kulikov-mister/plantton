@@ -72,7 +72,7 @@ class Payment(Base):
         return cls(**data)
 
 
-# 4. Модель категорий книг
+# 4. Модель категорий растений
 class Category(Base):
     __tablename__ = 'categories'
 
@@ -93,38 +93,6 @@ class Category(Base):
             "description": self.description,
             "img": self.img,
             "translations": self.translations,
-        }
-
-    @classmethod
-    def from_dict(cls, data):
-        """Создает объект модели из словаря."""
-        return cls(**data)
-
-
-# 5. Модель книг
-class Book(Base):
-    __tablename__ = 'books'
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('users.id'))  # ID пользователя
-    category_id = Column(Integer, ForeignKey('categories.id'))  # ID категории
-    name_book = Column(String, nullable=False)  # Название книги
-    description_book = Column(String, nullable=False, default='')
-    content = Column(JSON, nullable=False)  # Содержание книги
-    book_url = Column(String, nullable=False)  # Ссылка на книгу
-    access_token = Column(String, nullable=True)  # Токен для загрузки книги
-
-    def to_dict(self):
-        """Преобразует объект модели в словарь."""
-        return {
-            "id": self.id,
-            "user_id": self.user_id,
-            "category_id": self.category_id,
-            "name_book": self.name_book,
-            "description_book": self.description_book,
-            "content": self.content,
-            "book_url": self.book_url,
-            "access_token": self.access_token
         }
 
     @classmethod

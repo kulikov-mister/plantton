@@ -1,12 +1,14 @@
 from aiogram import Bot
 from aiogram.types import BotCommand, BotCommandScopeDefault
 from lang.translator import LANG_CODE_LIST, LocalizedTranslator, Translator
+from config import is_tech_works
 
 
 async def set_bot_configs(bot: Bot, locale: str):
     await set_commands(bot, locale)
-    await set_bot_name(bot, locale)  # TODO: Flood control
-    await set_bot_description(bot, locale)
+    if not is_tech_works:
+        await set_bot_name(bot, locale)  # TODO: Flood control
+        await set_bot_description(bot, locale)
 
 
 async def set_commands(bot: Bot, locale: str):
@@ -17,12 +19,8 @@ async def set_commands(bot: Bot, locale: str):
             description=translator.get("start_cmd_description")
         ),
         BotCommand(
-            command='create_book',
-            description=translator.get("create_book_cmd_description")
-        ),
-        BotCommand(
-            command='books',
-            description=translator.get("books_cmd_description")
+            command='plants',
+            description=translator.get("plants_cmd_description")
         ),
         BotCommand(
             command='balance',

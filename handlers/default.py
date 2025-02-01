@@ -23,8 +23,9 @@ class States(StatesGroup):
 @router.message(IsAuth(), Command("start", magic=F.args.in_([None, 'start'])))
 async def cmd_start(message: Message, state: FSMContext, translator: LocalizedTranslator):
     await message.answer_sticker('CAACAgEAAxkBAAIB-md1m0AGoO0FAVGqn9DIXWMSozJoAAJ_AwACjrnpRxz1DWc-DE2ZNgQ')
+    bot_name = await message.bot.get_my_name(message.from_user.language_code)
     # приветственное сообщение
-    await message.answer(translator.get('greeting_message'), disable_web_page_preview=True)
+    await message.answer(translator.get('greeting_message', bot_name=bot_name.name), disable_web_page_preview=True)
 
 
 # Хэндлер на команду /help

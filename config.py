@@ -22,7 +22,8 @@ GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 GEMINI_API_KEY_1 = os.environ.get("GEMINI_API_KEY_1")
 
 
-admin_ids = [6316305521]
+owner_id = 6316305521
+admin_ids = [owner_id,]
 admin_ids_str: int = admin_ids
 base_dir = os.path.dirname(os.path.abspath(__file__))
 is_tech_works = False

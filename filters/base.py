@@ -63,7 +63,8 @@ class IsAuth(BaseFilter):
         if not user:
             user = await UserCRUD.create_user(session, str(user_id))
             await set_bot_configs(bot, language_code)
-            await obj.answer(translator.get('registration_success'))
+            bot_name = await bot.get_my_name(language_code)
+            await obj.answer(translator.get('registration_success', bot_name=bot_name.name))
 
         # Если указан для проверки баланс
         if self.check_balance:

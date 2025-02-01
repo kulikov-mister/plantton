@@ -1,10 +1,11 @@
 # db/crud/crud.py
 import json
 from datetime import datetime, timedelta
-from db.models import User, Payment, Category, Book
+from db.models import User, Payment, Category
 from sqlalchemy.orm import Session
 from utils.cache_utils import CacheManager
 from utils.code_generator import generate_random_string_async_lower
+
 
 cache = CacheManager()
 
@@ -273,137 +274,5 @@ class CategoryCRUD:
 
             # Удаляем из кеша
             await cache.delete(str(category_id))
-            return True
-        return False
-
-
-class BookCRUD:
-
-    @staticmethod
-    async def create_book(
-        session: Session, user_id: str, name_book: str, content: dict, book_url: str, access_token: str, category_id: int
-    ) -> Book:
-        """Создать книгу."""
-        # Создаём книгу
-        book = Book(
-            user_id=user_id, name_book=name_book, content=content,
-            book_url=book_url, access_token=access_token, category_id=category_id
-        )
-        session.add(book)
-        session.commit()
-        session.refresh(book)
-
-        # чистим кеш
-        await cache.delete('all_books')
-
-        return book
-
-    @staticmethod
-    async def get_all_books(session: Session) -> list[Book]:
-        """Получить книгу из кеша или БД."""
-        cache_key = "all_books"
-        cached_books = await cache.get_data(cache_key)
-        if cached_books:
-            return [Book.from_dict(book_data) for book_data in cached_books]
-
-        # Если в кеше нет, берем из БД
-        books = session.query(Book).all()
-        result = [book.to_dict() for book in books]
-        await cache.set_data(cache_key, result)
-        return books
-
-    @staticmethod
-    async def get_book_by_id(session: Session, book_id: int) -> Book:
-        """Получить книгу из кеша или БД."""
-        cached_book = await cache.get_data(str(book_id))
-        if cached_book:
-            return [Book.from_dict(cached_book)]
-
-        # Если в кеше нет, берем из БД
-        book = session.query(Book).filter(Book.id == book_id).first()
-        if book:
-            await cache.set_data(str(book.id), book.to_dict())
-        return book
-
-    @staticmethod
-    async def get_books_by_user_id(session: Session, user_id: int) -> list[Book]:
-        """Получить все книги пользователя (с поддержкой кеша)."""
-        cache_key = f'books_{user_id}'
-        cached_books = await cache.get_data(cache_key)
-        # Если данные есть в кеше, преобразуем их в объекты модели Book
-        if cached_books:
-            return [Book.from_dict(book_data) for book_data in cached_books]
-
-        # Если данных в кеше нет, получаем их из базы данных
-        books = session.query(Book).filter(Book.user_id == user_id).all()
-
-        # Преобразуем книги в список словарей и сохраняем в кеше
-        result = [book.to_dict() for book in books]
-        await cache.set_data(cache_key, result)
-
-        # Преобразуем данные в список объектов модели Book перед возвратом
-        return books
-
-    @staticmethod
-    async def get_all_books_by_category_code(session: Session, category_code: str) -> list[Book]:
-        """
-        Получить все книги по коду категории (с поддержкой кеша).
-        """
-        cache_key = f'books={category_code}'
-
-        # Проверяем кеш
-        cached_books = await cache.get_data(cache_key)
-        if cached_books:
-            return [Book.from_dict(book_data) for book_data in cached_books]
-
-        # Получаем все книги (из кеша или БД)
-        books = await BookCRUD.get_all_books(session)
-        if not books:
-            return []
-
-        # Получаем категорию по коду
-        category = await CategoryCRUD.get_category_by_category_code(session, category_code)
-
-        if not category:
-            return []
-
-        # Фильтруем книги по id категории
-        filtered_books = [
-            book for book in books if str(book.category_id) == str(category.id)]
-
-        if not filtered_books:
-            return []
-
-        # Преобразуем книги в список словарей
-        result = [book.to_dict() for book in filtered_books]
-
-        # Сохраняем результат в кеше
-        await cache.set_data(cache_key, result)
-        return filtered_books
-
-    @staticmethod
-    async def update_book(session: Session, book_id: int, **kwargs) -> Book:
-        """Обновить книгу в БД и кеше."""
-        book = session.query(Book).filter(Book.id == book_id).first()
-        if book:
-            for key, value in kwargs.items():
-                setattr(book, key, value)
-        session.commit()
-        session.refresh(book)
-
-        # Обновляем кеш
-        await cache.update_data(str(book_id), kwargs)
-        return book
-
-    @staticmethod
-    async def delete_book(session: Session, book_id: int) -> bool:
-        """Удалить книгу из БД и кеша."""
-        book = session.query(Book).filter(Book.id == book_id).first()
-        if book:
-            session.delete(book)
-            session.commit()
-
-            # Удаляем из кеша
-            await cache.delete(str(book_id))
             return True
         return False

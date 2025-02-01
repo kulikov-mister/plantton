@@ -15,17 +15,17 @@ from db.crud import cache
 from lang.translator import Translator
 from lang.localMiddleware import LangMiddleware
 from scheduler.scheduler import setup_scheduler
-from config import bot, dp
+from config import bot, dp, owner_id
 
 
 async def on_startup():
     response = await cache.load_cache_from_file()
-    await bot.send_message('6316305521', response)
+    await bot.send_message(owner_id, response)
 
 
 async def on_shutdown():
     response = await cache.save_cache_to_file()
-    await bot.send_message('6316305521', response)
+    await bot.send_message(owner_id, response)
 
 
 # стартовые настройки бота
@@ -37,7 +37,7 @@ async def main() -> None:
 
     # Проверяем и обновляем структуру БД
     sync_database()
-    setup_scheduler()
+    # setup_scheduler()
 
     # регистрируем старт и стоп бота
     dp.startup.register(on_startup)
@@ -64,5 +64,6 @@ async def main() -> None:
     await dp.start_polling(bot)
 
 
+# запуск бота
 if __name__ == "__main__":
     asyncio.run(main())

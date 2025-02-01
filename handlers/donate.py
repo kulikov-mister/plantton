@@ -55,10 +55,13 @@ async def create_xtr_link_handler(
     builder = InlineKeyboardBuilder()
     builder.button(text=translator.get('donate_btn_text'), pay=True)
     payment_keyboard = builder.as_markup()
+    bot_name = await message.bot.get_my_name(message.from_user.language_code)
 
     msg = await message.answer_invoice(
         title=translator.get('donate_invoice_title'),
-        description=translator.get('donate_invoice_description'),
+        description=translator.get(
+            'donate_invoice_description', bot_name=bot_name.name
+        ),
         prices=prices,
         provider_token="",
         payload=f"donate_{message.from_user.id}",
