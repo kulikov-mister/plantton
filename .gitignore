@@ -1,5 +1,4 @@
 .DS_Store
 .env
 bot_database.db
-bot_database.db
 bot_cache.json
